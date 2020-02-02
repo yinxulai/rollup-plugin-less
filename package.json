@@ -1,0 +1,24 @@
+{
+  "name": "rollup-plugin-anycss",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --config ./tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/css": "^0.0.31",
+    "@types/less": "^3.0.1",
+    "@types/node": "^13.7.0",
+    "css": "^2.2.4",
+    "less": "^3.10.3"
+  },
+  "devDependencies": {
+    "postcss": "^7.0.26",
+    "postcss-modules": "^1.5.0"
+  },
+  "description": ""
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"less.js","sourceRoot":"","sources":["../../src/parser/less.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAAA,8CAAuB;AAEvB,kBAAe;IACX,IAAI,EAAE,UAAU;IAChB,KAAK,EAAE,UAAO,IAAY,EAAE,MAAoB;;;;wBAC/B,qBAAM,cAAI,CAAC,MAAM,CAAC,IAAI,EAAE,MAAM,CAAC,EAAA;;oBAAtC,IAAI,GAAG,SAA+B;oBAC5C,sBAAO,IAAI,CAAC,GAAG,EAAA;;;SAClB;CACJ,CAAA"}
