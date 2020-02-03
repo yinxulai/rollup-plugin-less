@@ -1,13 +1,31 @@
-import fs from 'fs'
 import path from 'path'
 import Rollup from 'rollup'
-import parses from './parser'
 import postcss from 'postcss'
+import postcssLess from 'postcss-less'
+import postcssScss from 'postcss-scss'
+import postcssSass from 'postcss-sass'
 import postcssModules from 'postcss-modules'
 // TODO: 解决 sourceMap
 
+type GenerateScopedNameFunction = (name: string, filename: string, css: string) => string
+
+// 具体请查看 https://github.com/css-modules/postcss-modules
+interface CssModuleOptions {
+    scopeBehaviour?: 'global' | 'local'
+    globalModulePaths?: (RegExp | string)[]
+    // generateScopedName 占位符： https://github.com/webpack/loader-utils#interpolatename
+    generateScopedName?: string | GenerateScopedNameFunction
+    hashPrefix?: string
+    camelCase?: boolean
+    root?: string
+}
+
+interface LessOption {
+
+}
+
 interface Options {
-    module?: any // 交给 postcss 的 module 参数
+    cssModule?: CssModuleOptions | boolean // 交给 postcss 的 module 参数
 }
 
 function toCaseName(name: string = '') {
@@ -15,30 +33,31 @@ function toCaseName(name: string = '') {
         .filter(t => t !== '-').join('')
 }
 
-async function writeFile(filepath: string, contents: any): Promise<void> {
-    const dir = path.dirname(filepath)
-    fs.mkdirSync(dir, { recursive: true })
-    const file = fs.openSync(filepath, 'w');
-    fs.writeFileSync(file, contents);
-    fs.closeSync(file)
-}
-
-interface exportCssOptions {
-    module?: boolean,
+interface ExportCodeOptions {
+    fileName: string
+    postResult: PostResult
     emitFile: Rollup.EmitFile
+    enableModule?: boolean
 }
-
 
 // 处理 css
-async function exportCss(identity: string, css: PostResult, option: exportCssOptions): Promise<Rollup.TransformResult> {
-    if (option.module) { // 输出文件
-        const basename = path.basename(identity)
+async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformResult> {
+    const { fileName, postResult, emitFile, enableModule } = options
+    if (enableModule) { // 启用了 css module
+        const basename = path.basename(fileName)
         const name = basename.replace(/\.\w*$/, '.css')
-        const referenceId = option.emitFile({ name, source: css.css, type: 'asset' })
-        return `require(import.meta.ROLLUP_FILE_URL_${referenceId});\nexport default ${JSON.stringify(css.tokens)}`
+        const referenceId = emitFile({ name, source: postResult.css, type: 'asset' })
+        
+        return {
+            map: postResult.map?.toString(),
+            code: `require(import.meta.ROLLUP_FILE_URL_${referenceId});\nexport default ${JSON.stringify(postResult.tokens)}`
+        }
     }
 
-    return `export default ${JSON.stringify(css.css)}`
+    return {
+        map: postResult.map?.toString(),
+        code: `export default ${JSON.stringify(postResult.css)}`
+    }
 }
 
 interface PostResult {
@@ -47,20 +66,27 @@ interface PostResult {
     tokens: { [key: string]: string }
 }
 
-async function postCss(identity: string, rawcss: string, option: Options): Promise<PostResult> {
-    option = option || {}
+interface PostCssOptions {
+    source: string
+    fileName: string
+    postCss?: postcss.ProcessOptions
+    cssModule?: CssModuleOptions
+}
+
+
+async function handlePostCss(options: PostCssOptions): Promise<PostResult> {
+    const { fileName, source, cssModule } = options
     const result: PostResult = { tokens: {} }
 
     const moduleOptions = {
-        ...option,
-        to: identity,
-        from: identity,
+        ...(typeof cssModule === 'object' && cssModule),
         getJSON: (_, token) => result.tokens = token,
     }
 
     // 调用 postCss 处理
-    const data = await postcss([postcssModules(moduleOptions)])
-        .process(rawcss)
+    const data = await postcss(
+        [postcssModules(moduleOptions)]
+    ).process(source, { from: fileName })
 
     result.css = data.css
     result.map = data.map
@@ -73,63 +99,53 @@ async function postCss(identity: string, rawcss: string, option: Options): Promi
     return result
 }
 
+function getPostSyntaxPlugin(file: string): [postcss.Syntax | undefined, boolean] {
+    switch (path.extname(file)) {
+        case '.less':
+            return [postcssLess, true];
+        case '.scss':
+            return [postcssScss, true];
+        case '.sass':
+            return [postcssSass, true];
+        case '.css':
+            return [undefined, true];
+        default:
+            return [undefined, false]
+    }
+}
 
 export default function plugin(options: Options = {}): Rollup.Plugin {
-    const enableCssModule = !!options.module
-    const exportFiles: Rollup.EmittedFile[] = []
 
     return {
         name: 'anycss',
-        renderStart: function (options: Rollup.OutputOptions) {
-            if (!options || !options.file) {
-                return
+        transform: async function (code: string, fileName: string) {
+            const { cssModule } = options
+            const emitFile = this.emitFile
+            const emitChunk = this.emitChunk
+            const enableModule = !!options.cssModule
+
+            const [syntax, ok] = getPostSyntaxPlugin(fileName)
+            if (!ok) { return }
+
+            const exportOptions = {
+                fileName,
+                emitFile,
+                emitChunk,
+                enableModule,
             }
 
-            const dist = path.dirname(options.file)
+            const handleOptions: PostCssOptions = {
+                fileName,
+                source: code,
+                postCss: { syntax },
+                cssModule: typeof cssModule === 'object' && cssModule || {}
+            }
 
-            exportFiles.filter(Boolean).forEach(file => {
-                if (!file.name || !file.fileName) {
-                    return
-                }
-
-                return this.emitFile({
-                    ...file,
-                    fileName: undefined
-                })
-            })
-        },
-        transform: async function (code: string, identity: string) {
-            const emitFile = this.emitFile
-
-            for (let index = 0; index < parses.length; index++) {
-                const paser = parses[index]
-                const test = parses[index].test
-
-                if (typeof test === 'function') {
-                    if (!test(identity)) {
-                        return null
-                    }
-                }
-
-                if (typeof test === 'string') {
-                    if (!identity.includes(test)) {
-                        return null
-                    }
-                }
-
-                if (test instanceof RegExp) {
-                    if (!test.test(identity)) {
-                        return null
-                    }
-                }
-
-                try {
-                    const rawcss = await paser.parse(identity, code, options)
-                    const result = await postCss(identity, rawcss, options.module) // 处理 css
-                    return await exportCss(identity, result, { emitFile, module: true })
-                } catch (err) {
-                    throw new Error(err)
-                }
+            try {
+                const postResult = await handlePostCss(handleOptions) // 处理 css
+                return await exportCode({ ...exportOptions, postResult })
+            } catch (err) {
+                throw new Error(err)
             }
         }
     }

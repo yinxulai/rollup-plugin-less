@@ -1,8 +1,8 @@
 {
   "name": "rollup-plugin-anycss",
   "version": "0.0.1",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,16 +10,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/css": "^0.0.31",
-    "@types/less": "^3.0.1",
-    "@types/node": "^13.7.0",
-    "css": "^2.2.4",
-    "less": "^3.10.3"
+    "postcss": "^7.0.26",
+    "postcss-less": "^3.1.4",
+    "postcss-modules": "^1.5.0",
+    "postcss-sass": "^0.4.2",
+    "postcss-scss": "^2.0.0",
+    "rollup": "^1.31.0"
   },
   "devDependencies": {
-    "postcss": "^7.0.26",
-    "postcss-modules": "^1.5.0",
-    "rollup": "^1.31.0"
+    "@types/css": "^0.0.31",
+    "@types/less": "^3.0.1",
+    "@types/node": "^13.7.0"
   },
   "description": ""
 }
