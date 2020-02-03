@@ -93,40 +93,35 @@ function writeFile(filepath, contents) {
     });
 }
 // 处理 css
-function handleCss(rawcss, identity, option) {
+function exportCss(identity, css, option) {
     return __awaiter(this, void 0, void 0, function () {
-        var cwd, data, relaPath, newFilePath;
+        var basename, name_1, referenceId;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    cwd = process.cwd();
-                    return [4 /*yield*/, postCss(rawcss, option)];
-                case 1:
-                    data = _a.sent();
-                    relaPath = '.' + identity.slice(cwd.length);
-                    newFilePath = path_1.default.resolve(relaPath.replace(/\.\w*$/, '.css'));
-                    return [4 /*yield*/, writeFile(newFilePath, data.css)];
-                case 2:
-                    _a.sent();
-                    return [2 /*return*/, "require('./" + path_1.default.basename(newFilePath) + "')\nexport default " + JSON.stringify(data.tokens)];
+            if (option.module) { // 输出文件
+                basename = path_1.default.basename(identity);
+                name_1 = basename.replace(/\.\w*$/, '.css');
+                referenceId = option.emitFile({ name: name_1, source: css.css, type: 'asset' });
+                return [2 /*return*/, "require(import.meta.ROLLUP_FILE_URL_" + referenceId + ");\nexport default " + JSON.stringify(css.tokens)];
             }
+            return [2 /*return*/, "export default " + JSON.stringify(css.css)];
         });
     });
 }
-function postCss(rawcss, option) {
+function postCss(identity, rawcss, option) {
     return __awaiter(this, void 0, void 0, function () {
         var result, moduleOptions, data;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     option = option || {};
-                    result = { css: '', tokens: {} };
-                    moduleOptions = __assign(__assign({}, option.module), { getJSON: function (_, token) { return result.tokens = token; } });
+                    result = { tokens: {} };
+                    moduleOptions = __assign(__assign({}, option), { to: identity, from: identity, getJSON: function (_, token) { return result.tokens = token; } });
                     return [4 /*yield*/, postcss_1.default([postcss_modules_1.default(moduleOptions)])
                             .process(rawcss)];
                 case 1:
                     data = _a.sent();
                     result.css = data.css;
+                    result.map = data.map;
                     Object.keys(result.tokens).forEach(function (key) {
                         var newKey = toCaseName(key);
                         result.tokens[newKey] = result.tokens[key];
@@ -137,52 +132,76 @@ function postCss(rawcss, option) {
     });
 }
 function plugin(options) {
-    var _this = this;
+    if (options === void 0) { options = {}; }
+    var enableCssModule = !!options.module;
+    var exportFiles = [];
     return {
         name: 'anycss',
-        transform: function (code, identity) { return __awaiter(_this, void 0, void 0, function () {
-            var index, paser, test, rawcss, exportCode;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        index = 0;
-                        _a.label = 1;
-                    case 1:
-                        if (!(index < parser_1.default.length)) return [3 /*break*/, 5];
-                        paser = parser_1.default[index];
-                        test = parser_1.default[index].test;
-                        if (typeof test === 'function') {
-                            if (!test(identity)) {
-                                return [2 /*return*/, null];
-                            }
-                        }
-                        if (typeof test === 'string') {
-                            if (!identity.includes(test)) {
-                                return [2 /*return*/, null];
-                            }
-                        }
-                        if (test instanceof RegExp) {
-                            if (!test.test(identity)) {
-                                return [2 /*return*/, null];
-                            }
-                        }
-                        return [4 /*yield*/, paser.parse(code, {})];
-                    case 2:
-                        rawcss = _a.sent();
-                        return [4 /*yield*/, handleCss(rawcss, identity, options)];
-                    case 3:
-                        exportCode = _a.sent();
-                        return [2 /*return*/, {
-                                code: exportCode,
-                                map: { mappings: '' }
-                            }];
-                    case 4:
-                        index++;
-                        return [3 /*break*/, 1];
-                    case 5: return [2 /*return*/];
+        renderStart: function (options) {
+            var _this = this;
+            if (!options || !options.file) {
+                return;
+            }
+            var dist = path_1.default.dirname(options.file);
+            exportFiles.filter(Boolean).forEach(function (file) {
+                if (!file.name || !file.fileName) {
+                    return;
                 }
+                return _this.emitFile(__assign(__assign({}, file), { fileName: undefined }));
             });
-        }); }
+        },
+        transform: function (code, identity) {
+            return __awaiter(this, void 0, void 0, function () {
+                var emitFile, index, paser, test, rawcss, result, err_1;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            emitFile = this.emitFile;
+                            index = 0;
+                            _a.label = 1;
+                        case 1:
+                            if (!(index < parser_1.default.length)) return [3 /*break*/, 8];
+                            paser = parser_1.default[index];
+                            test = parser_1.default[index].test;
+                            if (typeof test === 'function') {
+                                if (!test(identity)) {
+                                    return [2 /*return*/, null];
+                                }
+                            }
+                            if (typeof test === 'string') {
+                                if (!identity.includes(test)) {
+                                    return [2 /*return*/, null];
+                                }
+                            }
+                            if (test instanceof RegExp) {
+                                if (!test.test(identity)) {
+                                    return [2 /*return*/, null];
+                                }
+                            }
+                            _a.label = 2;
+                        case 2:
+                            _a.trys.push([2, 6, , 7]);
+                            return [4 /*yield*/, paser.parse(identity, code, options)];
+                        case 3:
+                            rawcss = _a.sent();
+                            return [4 /*yield*/, postCss(identity, rawcss, options.module)]; // 处理 css
+                        case 4:
+                            result = _a.sent() // 处理 css
+                            ;
+                            return [4 /*yield*/, exportCss(identity, result, { emitFile: emitFile, module: true })];
+                        case 5: // 处理 css
+                        return [2 /*return*/, _a.sent()];
+                        case 6:
+                            err_1 = _a.sent();
+                            throw new Error(err_1);
+                        case 7:
+                            index++;
+                            return [3 /*break*/, 1];
+                        case 8: return [2 /*return*/];
+                    }
+                });
+            });
+        }
     };
 }
 exports.default = plugin;
