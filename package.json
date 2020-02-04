@@ -15,7 +15,8 @@
     "postcss-modules": "^1.5.0",
     "postcss-sass": "^0.4.2",
     "postcss-scss": "^2.0.0",
-    "rollup": "^1.31.0"
+    "rollup": "^1.31.0",
+    "rollup-pluginutils": "^2.8.2"
   },
   "devDependencies": {
     "@types/css": "^0.0.31",

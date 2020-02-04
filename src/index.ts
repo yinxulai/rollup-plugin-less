@@ -5,6 +5,7 @@ import postcssLess from 'postcss-less'
 import postcssScss from 'postcss-scss'
 import postcssSass from 'postcss-sass'
 import postcssModules from 'postcss-modules'
+import { createFilter } from 'rollup-pluginutils'
 
 type GenerateScopedNameFunction = (name: string, filename: string, css: string) => string
 
@@ -20,6 +21,8 @@ interface CssModuleOptions {
 }
 
 interface Options {
+    include?: string[]
+    exclude?: string[]
     cssModule?: CssModuleOptions | boolean // 交给 postcss 的 module 参数
 }
 
@@ -70,7 +73,7 @@ interface PostCssOptions {
 
 
 async function handlePostCss(options: PostCssOptions): Promise<PostResult> {
-    const { fileName, source, cssModule } = options
+    const { fileName, source, postCss, cssModule } = options
     const result: PostResult = { tokens: {} }
 
     const moduleOptions = {
@@ -81,7 +84,7 @@ async function handlePostCss(options: PostCssOptions): Promise<PostResult> {
     // 调用 postCss 处理
     const data = await postcss(
         [postcssModules(moduleOptions)]
-    ).process(source, { from: fileName })
+    ).process(source, { ...postCss, from: fileName })
 
     result.css = data.css
     result.map = data.map
@@ -110,10 +113,18 @@ function getPostSyntaxPlugin(file: string): [postcss.Syntax | undefined, boolean
 }
 
 export default function plugin(options: Options = {}): Rollup.Plugin {
+    const filter = createFilter(
+        options.include || ['/**/*.css', '/**/*.less', '/**/*.scss', '/**/*.sass'],
+        options.exclude
+    )
 
     return {
         name: 'anycss',
         transform: async function (code: string, fileName: string) {
+            if (!filter(fileName)) {
+                return
+              }
+
             const { cssModule } = options
             const emitFile = this.emitFile
             const emitChunk = this.emitChunk
@@ -142,6 +153,10 @@ export default function plugin(options: Options = {}): Rollup.Plugin {
             } catch (err) {
                 throw new Error(err)
             }
+        },
+        generateBundle: function (options, bundle, isWrite) {
+            // 输出文件
+
         }
     }
 }

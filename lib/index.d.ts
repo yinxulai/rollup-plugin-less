@@ -9,6 +9,8 @@ interface CssModuleOptions {
     root?: string;
 }
 interface Options {
+    include?: string[];
+    exclude?: string[];
     cssModule?: CssModuleOptions | boolean;
 }
 export default function plugin(options?: Options): Rollup.Plugin;
