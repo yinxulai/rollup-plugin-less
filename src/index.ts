@@ -5,7 +5,6 @@ import postcssLess from 'postcss-less'
 import postcssScss from 'postcss-scss'
 import postcssSass from 'postcss-sass'
 import postcssModules from 'postcss-modules'
-// TODO: 解决 sourceMap
 
 type GenerateScopedNameFunction = (name: string, filename: string, css: string) => string
 
@@ -18,10 +17,6 @@ interface CssModuleOptions {
     hashPrefix?: string
     camelCase?: boolean
     root?: string
-}
-
-interface LessOption {
-
 }
 
 interface Options {
@@ -47,15 +42,15 @@ async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformR
         const basename = path.basename(fileName)
         const name = basename.replace(/\.\w*$/, '.css')
         const referenceId = emitFile({ name, source: postResult.css, type: 'asset' })
-        
+
         return {
-            map: postResult.map?.toString(),
+            map: { mappings: '' }, // TODO: 正确处理 map
             code: `require(import.meta.ROLLUP_FILE_URL_${referenceId});\nexport default ${JSON.stringify(postResult.tokens)}`
         }
     }
 
     return {
-        map: postResult.map?.toString(),
+        map: { mappings: '' },
         code: `export default ${JSON.stringify(postResult.css)}`
     }
 }
