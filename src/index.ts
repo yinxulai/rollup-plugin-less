@@ -99,7 +99,7 @@ async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformR
     if (insert) {
       return { // 插入 dom
         map: { mappings: '' }, // TODO: 正确处理 map
-        code: `(${injectFnName}(${JSON.stringify(postResult.css)}))();
+        code: `${injectFnName}(${JSON.stringify(postResult.css)});
         export default ${JSON.stringify(postResult.tokens)};`
       }
     }
@@ -119,7 +119,7 @@ async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformR
   if (insert) {
     return { // 插入 dom
       map: { mappings: '' }, // TODO: 正确处理 map
-      code: `export default (${injectFnName}(${JSON.stringify(postResult.css)}))()`
+      code: `export default ${injectFnName}(${JSON.stringify(postResult.css)})`
     }
   }
 
