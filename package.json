@@ -1,5 +1,5 @@
 {
-  "name": "rollup-plugin-anycss",
+  "name": "@yinxulai/rollup-plugin-less",
   "version": "0.0.1",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -7,14 +7,14 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  
+  "author": "yinxulai@hotmail.com",
   "license": "ISC",
   "dependencies": {
+    "autoprefixer": "^9.7.4",
+    "less": "^3.11.1",
     "postcss": "^7.0.26",
-    "postcss-less": "^3.1.4",
     "postcss-modules": "^1.5.0",
-    "postcss-sass": "^0.4.2",
-    "postcss-scss": "^2.0.0",
     "rollup": "^1.31.0",
     "rollup-pluginutils": "^2.8.2"
   },
@@ -23,5 +23,6 @@
     "@types/less": "^3.0.1",
     "@types/node": "^13.7.0"
   },
+
   "description": ""
 }

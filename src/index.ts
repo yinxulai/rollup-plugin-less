@@ -1,162 +1,180 @@
 import path from 'path'
 import Rollup from 'rollup'
 import postcss from 'postcss'
-import postcssLess from 'postcss-less'
-import postcssScss from 'postcss-scss'
-import postcssSass from 'postcss-sass'
+import { less } from './parser'
+import { insertStyle } from './utils'
+import autoprefixer from 'autoprefixer'
+import { LessOptions } from './parser/less'
 import postcssModules from 'postcss-modules'
 import { createFilter } from 'rollup-pluginutils'
+
+const injectFnName = `__any_css_style_inject__`
 
 type GenerateScopedNameFunction = (name: string, filename: string, css: string) => string
 
 // 具体请查看 https://github.com/css-modules/postcss-modules
 interface CssModuleOptions {
-    scopeBehaviour?: 'global' | 'local'
-    globalModulePaths?: (RegExp | string)[]
-    // generateScopedName 占位符： https://github.com/webpack/loader-utils#interpolatename
-    generateScopedName?: string | GenerateScopedNameFunction
-    hashPrefix?: string
-    camelCase?: boolean
-    root?: string
+  scopeBehaviour?: 'global' | 'local'
+  globalModulePaths?: (RegExp | string)[]
+  // generateScopedName 占位符： https://github.com/webpack/loader-utils#interpolatename
+  generateScopedName?: string | GenerateScopedNameFunction
+  hashPrefix?: string
+  camelCase?: boolean
+  root?: string
 }
 
+// 插件配置
 interface Options {
-    include?: string[]
-    exclude?: string[]
-    cssModule?: CssModuleOptions | boolean // 交给 postcss 的 module 参数
-}
-
-function toCaseName(name: string = '') {
-    return [...name.replace(/-(\w)/g, (_, $1) => $1.toUpperCase())]
-        .filter(t => t !== '-').join('')
+  insert?: boolean
+  include?: string[]
+  exclude?: string[]
+  cssModule?: CssModuleOptions | boolean // 交给 postcss 的 module 参数
+  lessOptions?: LessOptions
 }
 
 interface ExportCodeOptions {
-    fileName: string
-    postResult: PostResult
-    emitFile: Rollup.EmitFile
-    enableModule?: boolean
-}
+  fileName: string
+  postResult: PostResult
+  emitFile: Rollup.EmitFile
 
-// 处理 css
-async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformResult> {
-    const { fileName, postResult, emitFile, enableModule } = options
-    if (enableModule) { // 启用了 css module
-        const basename = path.basename(fileName)
-        const name = basename.replace(/\.\w*$/, '.css')
-        const referenceId = emitFile({ name, source: postResult.css, type: 'asset' })
-
-        return {
-            map: { mappings: '' }, // TODO: 正确处理 map
-            code: `require(import.meta.ROLLUP_FILE_URL_${referenceId});\nexport default ${JSON.stringify(postResult.tokens)}`
-        }
-    }
-
-    return {
-        map: { mappings: '' },
-        code: `export default ${JSON.stringify(postResult.css)}`
-    }
+  insert?: boolean
+  enableModule?: boolean
 }
 
 interface PostResult {
-    css?: string,
-    map?: postcss.ResultMap,
-    tokens: { [key: string]: string }
+  css?: string,
+  map?: postcss.ResultMap,
+  tokens: { [key: string]: string }
 }
 
 interface PostCssOptions {
-    source: string
-    fileName: string
-    postCss?: postcss.ProcessOptions
-    cssModule?: CssModuleOptions
+  source: string
+  fileName: string
+  cssModule?: CssModuleOptions
 }
 
+async function postCss(options: PostCssOptions): Promise<PostResult> {
+  const { fileName, source, cssModule } = options
+  const result: PostResult = { tokens: {} }
 
-async function handlePostCss(options: PostCssOptions): Promise<PostResult> {
-    const { fileName, source, postCss, cssModule } = options
-    const result: PostResult = { tokens: {} }
-
-    const moduleOptions = {
-        ...(typeof cssModule === 'object' && cssModule),
-        getJSON: (_, token) => result.tokens = token,
-    }
-
-    // 调用 postCss 处理
-    const data = await postcss(
-        [postcssModules(moduleOptions)]
-    ).process(source, { ...postCss, from: fileName })
-
-    result.css = data.css
-    result.map = data.map
-
-    Object.keys(result.tokens).forEach(key => {
-        const newKey = toCaseName(key)
-        result.tokens[newKey] = result.tokens[key]
-    })
-
+  if (!source || !fileName) {
     return result
+  }
+
+  const moduleOptions = {
+    ...(typeof cssModule === 'object' && cssModule),
+    getJSON: (_, token) => result.tokens = token,
+  }
+
+  const processOptions = {
+    from: fileName
+  }
+
+  let data = {} as any
+
+  try {
+    // 调用 postCss 处理
+    data = await postcss(
+      [
+        autoprefixer(), // 自动补充浏览器前缀
+        postcssModules(moduleOptions), // css module
+      ]
+    ).process(source, processOptions)
+  } catch (err) {
+
+    throw new Error('postcss error')
+  }
+
+  result.css = data.css
+  result.map = data.map
+
+  return result
 }
 
-function getPostSyntaxPlugin(file: string): [postcss.Syntax | undefined, boolean] {
-    switch (path.extname(file)) {
-        case '.less':
-            return [postcssLess, true];
-        case '.scss':
-            return [postcssScss, true];
-        case '.sass':
-            return [postcssSass, true];
-        case '.css':
-            return [undefined, true];
-        default:
-            return [undefined, false]
+async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformResult> {
+  const { fileName, postResult, insert, emitFile, enableModule } = options
+
+  if (enableModule) { // 启用了 css module
+
+    if (insert) {
+      return { // 插入 dom
+        map: { mappings: '' }, // TODO: 正确处理 map
+        code: `(${injectFnName}(${JSON.stringify(postResult.css)}))();
+        export default ${JSON.stringify(postResult.tokens)};`
+      }
     }
+
+    // 否则作为文件导出
+    const basename = path.basename(fileName)
+    const name = basename.replace(/\.\w*$/, '.css')
+    const referenceId = emitFile({ name, source: postResult.css, type: 'asset' })
+
+    return {
+      map: { mappings: '' }, // TODO: 正确处理 map
+      code: `require(import.meta.ROLLUP_FILE_URL_${referenceId});\n
+      export default ${JSON.stringify(postResult.tokens)}`
+    }
+  }
+
+  if (insert) {
+    return { // 插入 dom
+      map: { mappings: '' }, // TODO: 正确处理 map
+      code: `export default (${injectFnName}(${JSON.stringify(postResult.css)}))()`
+    }
+  }
+
+  return {
+    map: { mappings: '' },
+    code: `export default ${JSON.stringify(postResult.css)}`
+  }
 }
 
 export default function plugin(options: Options = {}): Rollup.Plugin {
-    const filter = createFilter(
-        options.include || ['/**/*.css', '/**/*.less', '/**/*.scss', '/**/*.sass'],
-        options.exclude
-    )
+  const filter = createFilter(
+    options.include || ['/**/*.css', '/**/*.less'],
+    options.exclude
+  )
 
-    return {
-        name: 'anycss',
-        transform: async function (code: string, fileName: string) {
-            if (!filter(fileName)) {
-                return
-              }
+  return {
+    name: 'anycss',
+    intro() {
+      return options.insert
+        ? insertStyle.toString().replace(/insertStyle/, injectFnName)
+        : '';
+    },
 
-            const { cssModule } = options
-            const emitFile = this.emitFile
-            const emitChunk = this.emitChunk
-            const enableModule = !!options.cssModule
+    transform: async function (code: string, fileName: string) {
+      if (!filter(fileName)) {
+        return
+      }
 
-            const [syntax, ok] = getPostSyntaxPlugin(fileName)
-            if (!ok) { return }
+      const { cssModule } = options
+      const insert = options.insert
+      const emitFile = this.emitFile
+      const emitChunk = this.emitChunk
+      const enableModule = !!options.cssModule
 
-            const exportOptions = {
-                fileName,
-                emitFile,
-                emitChunk,
-                enableModule,
-            }
+      const exportOptions = {
+        insert,
+        fileName,
+        emitFile,
+        emitChunk,
+        enableModule,
+      }
 
-            const handleOptions: PostCssOptions = {
-                fileName,
-                source: code,
-                postCss: { syntax },
-                cssModule: typeof cssModule === 'object' && cssModule || {}
-            }
+      const lessOptions: LessOptions = {
+        ...options.lessOptions
+      }
 
-            try {
-                const postResult = await handlePostCss(handleOptions) // 处理 css
-                return await exportCode({ ...exportOptions, postResult })
-            } catch (err) {
-                throw new Error(err)
-            }
-        },
-        generateBundle: function (options, bundle, isWrite) {
-            // 输出文件
+      const postCssOptions: PostCssOptions = {
+        fileName,
+        source: code,
+        cssModule: typeof cssModule === 'object' && cssModule || {}
+      }
 
-        }
+      const css = await less(code, { ...lessOptions, paths: [path.dirname(fileName)] }) // 预处理 less 语法
+      const postResult = await postCss({ ...postCssOptions, source: css.css }) // 处理 css
+      return await exportCode({ ...exportOptions, postResult }) // 导出转换后的代码
     }
+  }
 }
