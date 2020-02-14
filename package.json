@@ -4,10 +4,15 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
-  
+  "keywords": [
+    "less",
+    "rollup",
+    "rollup-plugin",
+    "cssModule"
+  ],
+  "homepage": "https://github.com/yinxulai/rollup-plugin-less",
   "author": "yinxulai@hotmail.com",
   "license": "ISC",
   "dependencies": {
@@ -23,6 +28,5 @@
     "@types/less": "^3.0.1",
     "@types/node": "^13.7.0"
   },
-
   "description": ""
 }
