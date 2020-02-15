@@ -1,5 +1,3 @@
-import hash from './hash'
-
 export default function insertStyle(css: string) {
   if (!css) return;
 
@@ -7,6 +5,30 @@ export default function insertStyle(css: string) {
   if (typeof (window) == 'undefined') return;
   if (typeof (document) == 'undefined') return;
   if (typeof (document.head) == 'undefined') return;
+
+  function hash(input: string): string {
+    var hash = 5381;
+    var i = input.length - 1;
+    const I64BIT_TABLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split('');
+
+    if (typeof input == 'string') {
+      for (; i > -1; i--)
+        hash += (hash << 5) + input.charCodeAt(i);
+    }
+    else {
+      for (; i > -1; i--)
+        hash += (hash << 5) + input[i];
+    }
+    var value = hash & 0x7FFFFFFF;
+
+    var retValue = '';
+    do {
+      retValue += I64BIT_TABLE[value & 0x3F];
+    }
+    while (value >>= 6);
+
+    return retValue;
+  }
 
   // 计算内容哈希
   const documentID = hash(css)

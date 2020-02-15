@@ -1,10 +1,16 @@
 {
+  "version": "0.0.4",
   "name": "@yinxulai/rollup-plugin-less",
-  "version": "0.0.2",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/cjs/index.js",
+  "module": "lib/es/index.js",
+  "es2015": "lib/es/index.js",
+  "jsnext:main": "lib/esnext/index.js",
   "scripts": {
-    "build": "tsc"
+    "build-cjs": "tsc --project ./tsconfig.json",
+    "build-es": "tsc --project ./tsconfig.es.json",
+    "build-esnext": "tsc --project ./tsconfig.esnext.json",
+    "build": "yarn run build-cjs && yarn run build-es && yarn run build-esnext",
+    "publish": "yarn run build && npm publish"
   },
   "keywords": [
     "less",
@@ -12,21 +18,31 @@
     "rollup-plugin",
     "cssModule"
   ],
+  "files": [
+    "lib"
+  ],
   "homepage": "https://github.com/yinxulai/rollup-plugin-less",
   "author": "yinxulai@hotmail.com",
   "license": "ISC",
   "dependencies": {
+    "rollup-plugin-typescript": "^1.0.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^3.0.0",
+    "@types/css": "^0.0.31",
+    "@types/less": "^3.0.1",
+    "@types/node": "^13.7.0",
     "autoprefixer": "^9.7.4",
     "less": "^3.11.1",
     "postcss": "^7.0.26",
     "postcss-modules": "^1.5.0",
     "rollup": "^1.31.0",
-    "rollup-pluginutils": "^2.8.2"
-  },
-  "devDependencies": {
-    "@types/css": "^0.0.31",
-    "@types/less": "^3.0.1",
-    "@types/node": "^13.7.0"
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-peer-deps-external": "^2.2.2",
+    "rollup-pluginutils": "^2.8.2",
+    "tslib": "^1.10.0",
+    "typescript": "^3.7.5"
   },
   "description": ""
 }
