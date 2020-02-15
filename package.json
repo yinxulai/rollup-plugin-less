@@ -1,5 +1,5 @@
 {
-  "version": "0.0.6",
+  "version": "0.0.7",
   "name": "@yinxulai/rollup-plugin-less",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
@@ -8,7 +8,8 @@
     "build-cjs": "tsc --project ./tsconfig.json",
     "build-esm": "tsc --project ./tsconfig.esm.json",
     "build-esnext": "tsc --project ./tsconfig.esnext.json",
-    "build": "yarn run build-cjs && yarn run build-esm && yarn run build-esnext"
+    "build-fix-cjs-module": "perl -pi -e 's|exports.default|module.exports|g' ./lib/cjs/index.js",
+    "build": "yarn run build-cjs && yarn run build-esm && yarn run build-esnext && yarn run build-fix-cjs-module"
   },
   "keywords": [
     "less",
