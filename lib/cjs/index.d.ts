@@ -16,6 +16,6 @@ interface Options {
     cssModule?: CssModuleOptions | boolean;
     lessOptions?: LessOptions;
 }
-export declare function plugin(options?: Options): Rollup.Plugin;
+declare function plugin(options?: Options): Rollup.Plugin;
 export default plugin;
 //# sourceMappingURL=index.d.ts.map

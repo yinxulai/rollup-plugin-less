@@ -129,7 +129,7 @@ async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformR
   }
 }
 
-export function plugin(options: Options = {}): Rollup.Plugin {
+function plugin(options: Options = {}): Rollup.Plugin {
   const filter = createFilter(
     options.include || ['/**/*.css', '/**/*.less'],
     options.exclude
