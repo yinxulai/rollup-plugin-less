@@ -24,23 +24,24 @@ rollup({
 
 ### Configuration
 
-**insert** `boolean`
+#### `insert` boolean 
 
-将 css 内置，支持 ssr
+将编译后的 css，namedObject 内嵌入 js 里，使模块的使用者
+无需手动 import css 文件，同时对 ssr 支持友好，默认 `false`
 
-Defaults to `false`
+#### `include` string[]
 
-**include** `string[]`
+ include 用来设置仅进行处理的文件
 
-指定包含的文件
+#### `exclude` string[]
 
-**exclude** `string[]`
+ exclude 用来设置需要忽略处理的文件
 
-指定忽略的文件
+#### `cssModule` object | bool
 
-**cssModule** `object | bool`
-
-具体请查看 https://github.com/css-modules/postcss-modules
+ 本插件使用 `postcss-modules` 插件来处理 `cssModule`
+ 同时完整支持 `postcss-modules` 插件配置具，体请查看
+ [postcss-modules 文档](https://github.com/css-modules/postcss-modules)
 
 ```ts
 interface CssModuleOptions {
@@ -53,11 +54,24 @@ interface CssModuleOptions {
 }
 ```
 
-**lessOptions** `object`
-
- 详细信息查看 https://github.com/less/less-docs/blob/master/content/usage/less-options.md
+#### `lessOptions` object
+ 本插件使用 `less` 包来对 less 文件进行预处理，同时完整支持 `less` 的相关配置
+ 详细信息查看 [less](https://github.com/less/less-docs/blob/master/content/usage/less-options.md)
 
 ## Examples
+
+```
+// rollup.config.js
+import less from '@yinxulai/rollup-plugin-less'
+
+export default {
+  entry: 'entry.js',
+  dest: 'bundle.js',
+  plugins: [
+    less({options}) // will output compiled styles to bundle.css
+  ]
+}
+```
 
 ## License
 
