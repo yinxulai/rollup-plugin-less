@@ -15,11 +15,28 @@ npm install --save-dev @yinxulai/rollup-plugin-less
 ```js
 import { rollup } from 'rollup'
 import less from '@yinxulai/rollup-plugin-less'
+// const { rollup } = require('rollup')
+// const less = require('@yinxulai/rollup-plugin-less')
 
 rollup({
     input: 'src/index.js',
     plugins: [less(options)],
 }).then(/* ... */)
+```
+**OR**
+
+```js
+// rollup.config.js
+import less from '@yinxulai/rollup-plugin-less'
+// const less = require('@yinxulai/rollup-plugin-less')
+
+export default {
+  entry: 'entry.js',
+  dest: 'bundle.js',
+  plugins: [
+    less({options}) // will output compiled styles to bundle.css
+  ]
+}
 ```
 
 ### Configuration
@@ -57,21 +74,6 @@ interface CssModuleOptions {
 #### `lessOptions` object
  本插件使用 `less` 包来对 less 文件进行预处理，同时完整支持 `less` 的相关配置
  详细信息查看 [less](https://github.com/less/less-docs/blob/master/content/usage/less-options.md)
-
-## Examples
-
-```
-// rollup.config.js
-import less from '@yinxulai/rollup-plugin-less'
-
-export default {
-  entry: 'entry.js',
-  dest: 'bundle.js',
-  plugins: [
-    less({options}) // will output compiled styles to bundle.css
-  ]
-}
-```
 
 ## License
 
