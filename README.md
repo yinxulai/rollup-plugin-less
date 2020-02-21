@@ -55,7 +55,7 @@ export default {
 #### `cssModule` object | bool
 
  本插件使用 `postcss-modules` 插件来处理 `cssModule`
- 同时完整支持 `postcss-modules` 插件配置具，体请查看
+ 同时完整支持 `postcss-modules` 插件配置，具体请查看
  [postcss-modules 文档](https://github.com/css-modules/postcss-modules)
 
 ```ts
@@ -70,7 +70,7 @@ interface CssModuleOptions {
 ```
 
 #### `lessOptions` object
- 本插件使用 `less` 包来对 less 文件进行预处理，同时完整支持 `less` 的相关配置
+ 本插件使用 `less` 包来对 `less` 文件进行预处理，同时完整支持 `less` 的相关配置
  详细信息查看 [less 文档](https://github.com/less/less-docs/blob/master/content/usage/less-options.md)
 
 ## License
