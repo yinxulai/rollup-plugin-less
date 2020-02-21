@@ -1,8 +1,6 @@
 # rollup-plugin-less
 
-SSR 支持 
-typescript 支持
-转换 less 语法并支持 cssModule
+一个 `Rollup` 插件，用来处理 js 中的 less 引用，支持将 css 内置进 js，同时支持 ssr，支持 cssModule
 
 ## Installation
 
