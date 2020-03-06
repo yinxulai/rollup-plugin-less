@@ -7,6 +7,7 @@ import autoprefixer from 'autoprefixer'
 import { LessOptions } from './parser/less'
 import postcssModules from 'postcss-modules'
 import { createFilter } from 'rollup-pluginutils'
+import { hash } from './utils'
 
 const injectFnName = `__any_css_style_inject__`
 
@@ -81,7 +82,6 @@ async function postCss(options: PostCssOptions): Promise<PostResult> {
       ]
     ).process(source, processOptions)
   } catch (err) {
-
     throw new Error('postcss error')
   }
 
@@ -97,9 +97,10 @@ async function exportCode(options: ExportCodeOptions): Promise<Rollup.TransformR
   if (enableModule) { // 启用了 css module
 
     if (insert) {
+
       return { // 插入 dom
         map: { mappings: '' }, // TODO: 正确处理 map
-        code: `${injectFnName}(${JSON.stringify(postResult.css)});
+        code: `${injectFnName}("${hash(postResult.css || '')}",${JSON.stringify(postResult.css)});
         export default ${JSON.stringify(postResult.tokens)};`
       }
     }
